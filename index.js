@@ -6,6 +6,8 @@ const fs = require('fs');
 const { createWorker } = require('tesseract.js'); 
 const Jimp = require('jimp');
 const { Pool } = require('pg');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const app = express();
 const port = 3000;
@@ -17,10 +19,10 @@ app.use('/uploads', express.static('uploads'));
 // --- Database Connection ---
 // ⚠️ อย่าลืมแก้ password ให้ตรงกับเครื่องตัวเองนะครับ
 const pool = new Pool({
-  user: 'admin',
-  host: 'localhost',
-  database: 'watermeter',
-  password: 'password123',
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
   port: 5432,
 });
 
