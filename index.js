@@ -81,7 +81,7 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
     const { data: { text } } = await worker.recognize(processedPath);
     const cleanedText = text.replace(/[^0-9]/g, '').trim();
 
-    if (!cleanedText) return res.json({ success: false, error: "มองไม่เห็นตัวเลข" });
+    if (!cleanedText) return res.json({ success: false, error: "มองไม่เห็นตัวเลข", image_path: `uploads/${req.file.filename}` });
     res.json({ success: true, reading: cleanedText, image_path: `uploads/${req.file.filename}`, meter_type: meterType });
 
   } catch (error) { 
