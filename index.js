@@ -106,7 +106,7 @@ app.post('/api/save', async (req, res) => {
 });
 
 // ==========================================
-// 4. API Readings (แก้ไข Logic คำนวณสมบูรณ์)
+// 4. API Readings (แก้ไข: ดึงชื่อผู้จด recorder_name เพิ่มเติม)
 // ==========================================
 app.get('/api/readings', async (req, res) => {
     try {
@@ -119,10 +119,10 @@ app.get('/api/readings', async (req, res) => {
           r.image_url, 
           r.created_at,
           
-          -- คำนวณเลขมิเตอร์ครั้งก่อน (ถ้าไม่มีให้เป็น 0)
+          -- คำนวณเลขมิเตอร์ครั้งก่อน
           COALESCE(LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at), 0) as previous_reading,
           
-          -- คำนวณหน่วยที่ใช้จริง (แก้ไข: ถ้าเป็นเดือนแรกสุด ให้ usage เป็น 0 เพื่อไม่ให้เลขกระโดด)
+          -- คำนวณหน่วยที่ใช้จริง
           CASE 
             WHEN LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at) IS NULL THEN 0
             ELSE (CAST(r.reading_value AS INTEGER) - LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at))
@@ -130,7 +130,10 @@ app.get('/api/readings', async (req, res) => {
           
           -- ข้อมูลผู้เช่า
           (SELECT COUNT(*) FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_count,
-          (SELECT STRING_AGG(name, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_names
+          (SELECT STRING_AGG(name, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_names,
+
+          -- ✅ เพิ่มบรรทัดนี้: ดึงชื่อจากตาราง users โดยใช้ ID จาก recorded_by
+          (SELECT username FROM users WHERE id = r.recorded_by) as recorder_name
         
         FROM readings r
         ORDER BY r.created_at DESC
