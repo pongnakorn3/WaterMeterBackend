@@ -132,6 +132,8 @@ app.get('/api/readings', async (req, res) => {
           (SELECT COUNT(*) FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_count,
           (SELECT STRING_AGG(name, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_names,
 
+          (SELECT STRING_AGG(student_id, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as student_ids,
+
           -- ✅ เพิ่มบรรทัดนี้: ดึงชื่อจากตาราง users โดยใช้ ID จาก recorded_by
           (SELECT username FROM users WHERE id = r.recorded_by) as recorder_name
         
