@@ -106,7 +106,7 @@ app.post('/api/save', async (req, res) => {
 });
 
 // ==========================================
-// 4. API Readings (แก้ไข: ดึงชื่อผู้จด recorder_name เพิ่มเติม)
+// 4. API Readings (แก้ไข: เปลี่ยน INTEGER เป็น NUMERIC ป้องกันระบบพัง)
 // ==========================================
 app.get('/api/readings', async (req, res) => {
     try {
@@ -118,23 +118,23 @@ app.get('/api/readings', async (req, res) => {
           r.reading_value, 
           r.image_url, 
           r.created_at,
+          r.recorded_by,
           
-          -- คำนวณเลขมิเตอร์ครั้งก่อน
-          COALESCE(LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at), 0) as previous_reading,
+          -- คำนวณเลขมิเตอร์ครั้งก่อน (เปลี่ยนเป็น NUMERIC)
+          COALESCE(LAG(CAST(r.reading_value AS NUMERIC)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at), 0) as previous_reading,
           
-          -- คำนวณหน่วยที่ใช้จริง
+          -- คำนวณหน่วยที่ใช้จริง (เปลี่ยนเป็น NUMERIC)
           CASE 
-            WHEN LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at) IS NULL THEN 0
-            ELSE (CAST(r.reading_value AS INTEGER) - LAG(CAST(r.reading_value AS INTEGER)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at))
+            WHEN LAG(CAST(r.reading_value AS NUMERIC)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at) IS NULL THEN 0
+            ELSE (CAST(r.reading_value AS NUMERIC) - LAG(CAST(r.reading_value AS NUMERIC)) OVER (PARTITION BY r.room_number, r.meter_type ORDER BY r.created_at))
           END as usage,
           
           -- ข้อมูลผู้เช่า
           (SELECT COUNT(*) FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_count,
           (SELECT STRING_AGG(name, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as tenant_names,
-
           (SELECT STRING_AGG(student_id, ', ') FROM tenants t WHERE TRIM(t.room_number) = TRIM(r.room_number)) as student_ids,
 
-          -- ✅ เพิ่มบรรทัดนี้: ดึงชื่อจากตาราง users โดยใช้ ID จาก recorded_by
+          -- ดึงชื่อผู้จดจากตาราง users
           (SELECT username FROM users WHERE id = r.recorded_by) as recorder_name
         
         FROM readings r
